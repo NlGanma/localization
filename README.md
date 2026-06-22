@@ -42,6 +42,8 @@ This project treats odometry as the baseline and localization as gated evidence:
 - **Strict fusion gates** reject implausible, unstable, or poorly observed corrections.
 - **Boundary re-anchors** apply trusted corrections only while the chassis is idle.
 - **Deep-dive telemetry** exports every relevant pose, sensor, covariance, and gate state.
+- **Reusable PTO control** switches shared motors safely between 4-motor mechanisms
+  and an 8-motor drivetrain.
 
 ```mermaid
 flowchart LR
@@ -85,6 +87,25 @@ The localization layer is designed to be no worse than the odometry baseline:
 - Wall ranges solve position only; heading remains IMU-driven.
 - Ambiguous or blocked views fall back to odometry instead of forcing a field fix.
 - Fusion thresholds are not loosened merely to increase the correction count.
+
+## Reusable PTO Switching
+
+The robot control layer also contains PTO switching logic that other VEX V5 teams
+can adapt when motors serve both drivetrain and mechanism roles. The implementation
+includes:
+
+- motion-aware shift windows that avoid changing PTO state during a chassis motion;
+- controlled creep and delay timing to unload the transmission before engagement;
+- automatic mirroring of teleop drive output to PTO motors in 8-motor mode;
+- separate 4-motor and 8-motor controller-gain profiles;
+- explicit released-motor role mapping for intake and roller behavior;
+- blocking and non-blocking shift helpers, safe stops, and position-hold handling.
+
+The reusable architecture is in [`src/robot_control.cpp`](src/robot_control.cpp),
+[`include/robot_control.hpp`](include/robot_control.hpp), and the PTO extensions to
+the LemLib chassis. Motor ports, command signs, piston values, shift timing, and
+controller gains are robot-specific and must be validated before another team uses
+them on hardware.
 
 ## Quick Start
 
@@ -187,6 +208,7 @@ manual sensor-position measurements, and preserve strict fusion gates.
 | `src/lemlib/chassis/odom.cpp` | Odometry integration and delta history |
 | `src/localization_tune.cpp` | Tune routes, Brain overlay, log capture, terminal export |
 | `src/robot.cpp` | Tracking-wheel geometry and robot hardware configuration |
+| `src/robot_control.cpp` | PTO switching, shared-motor roles, intake, and mechanism control |
 | `tools/localization_tune_analyzer.py` | Offline calibration and diagnostics |
 | `validation_data/` | Preserved runs and physical validation protocol |
 | `report/localization_report.pdf` | Published engineering and validation report |
